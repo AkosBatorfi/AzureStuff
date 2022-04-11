@@ -4,7 +4,10 @@
 - Formatdisk.ps1 I made to format a disk from an ARM template
 - New-ContributorSP.ps1 is a script to create a service principal and giving it contributor rights.
 
-
+```powershell
+#small blurb to easily create something that creates a service principal, should be reworked..
+New-ContributorSP -appDisplayName test1 -appPassword supersecurepassword
+```
 
 - Get-ASRDetails.ps1 is a script that makes an API call to Azure to retrieve all Azure Site Recovery details (much more than regular PowerShell modules give).
 
@@ -24,5 +27,5 @@ $AllASR | select @{Name = 'Name'; Expression = {$($_.properties.friendlyname)}},
 @{Name = 'AgentCertificateUpdateRequired'; Expression = {$($_.properties.providerSpecificDetails.isReplicationAgentCertificateUpdateRequired)}}
 ```
 
-
+There's actually much more you can retrieve (basically anything), but this is an example..
 
