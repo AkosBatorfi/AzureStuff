@@ -15,9 +15,7 @@ function Get-ASRDetails{
       $azureRmProfile = [Microsoft.Azure.Commands.Common.Authentication.Abstractions.AzureRmProfileProvider]::Instance.Profile
       $profileClient = [Microsoft.Azure.Commands.ResourceManager.Common.RMProfileClient]::new($azureRmProfile)
       $token = $profileClient.AcquireAccessToken($currentContext.Subscription.TenantId)
-      
-      $date = Get-date
-      $datebefore = (Get-date).AddDays(-$daysago)
+
       $restCommand = @{
           Uri = "https://management.azure.com/subscriptions/$($currentContext.Subscription.id)/resourceGroups/$ResourceGroup/providers/Microsoft.RecoveryServices/vaults/$RecoveryVaultname/replicationProtectedItems?api-version=2021-08-01"
           Headers = @{
