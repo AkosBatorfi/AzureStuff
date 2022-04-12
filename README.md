@@ -1,4 +1,4 @@
-# AzureStuff
+# Azure Stuff
 
 - Start-Stop workflow I made because Azure was too slow stopping and starting VMs in the morning. This makes a parallel startup of VMs possible.
 - Formatdisk.ps1 I made to format a disk from an ARM template
@@ -27,5 +27,5 @@ $AllASR | select @{Name = 'Name'; Expression = {$($_.properties.friendlyname)}},
 @{Name = 'AgentCertificateUpdateRequired'; Expression = {$($_.properties.providerSpecificDetails.isReplicationAgentCertificateUpdateRequired)}}
 ```
 
-There's actually much more you can retrieve (basically anything), but this is an example..
+There's actually much more you can retrieve (basically anything ASR related), but this is an example..
 
