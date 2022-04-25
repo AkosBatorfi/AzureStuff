@@ -1,0 +1,30 @@
+// Missing critical security updates all
+Update
+|where  OSType != "Linux" and UpdateState == "Needed" and Optional == "false" and (Classification == "Security Updates" or Classification == "Critical Updates") 
+| project TimeGenerated, Resource, Title, Classification,KBID, PublishedDate
+| sort by TimeGenerated desc
+
+// Missing critical and security updates listed per VM
+Update
+|where  OSType != "Linux" and UpdateState == "Needed" and Optional == "false" and (Classification == "Security Updates" or Classification == "Critical Updates") 
+| summarize UpdatesNeeded=makeset(Title), Updates=dcount(Title), makeset(KBID) by Computer
+
+// Antimalware status per computer
+ProtectionStatus
+| summarize arg_max(TimeGenerated, ProtectionStatus, ProtectionStatusDetails) by Computer
+
+//Events per distinct computer
+Event
+| summarize count() by Computer
+| distinct Computer, count_ 
+
+//Errors and warnings on Domain controllers
+Event 
+| where Computer contains "ADS" and EventLevelName in ("Warning", "Error")
+| distinct Computer, EventLog, EventID, RenderedDescription
+
+//Expiring certificates
+Event
+| where RenderedDescription has "certificate will expire" or RenderedDescription has "is about to expire or already expired"
+| distinct Computer, EventLog, EventID, RenderedDescription
+
