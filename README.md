@@ -29,3 +29,8 @@ $AllASR | select @{Name = 'Name'; Expression = {$($_.properties.friendlyname)}},
 
 There's actually much more you can retrieve (basically anything ASR related), but this is an example..
 
+- NewSwapSlotRole.ps1
+```powershell
+#function to create a custom role that adds https://blog.chudinov.net/permissions-for-deployment-to-azure-web-app-slots/..
+New-NewSwapSlotRole -subscriptionId abc-123
+```
