@@ -28,3 +28,49 @@ Event
 | where RenderedDescription has "certificate will expire" or RenderedDescription has "is about to expire or already expired"
 | distinct Computer, EventLog, EventID, RenderedDescription
 
+//ARG - Show subscriptions with Azure ASC default policy
+policyresources
+| where type == "microsoft.authorization/policyassignments"
+| extend defId = properties.policyDefinitionId
+| where defId == "/providers/Microsoft.Authorization/policySetDefinitions/1f3afdf9-d0c9-4c3d-847f-89da613e70a8"
+| project subscriptionId, name, Title=properties.displayName, scope=properties.scope, properties
+
+
+//ARG - Active Azure Security Center alerts showing different alerts.
+securityresources
+| where type =~ 'microsoft.security/locations/alerts'
+| where properties.Status in ('Active')
+| extend TimeGeneratedUtc= properties.TimeGeneratedUtc
+| sort by tostring(TimeGeneratedUtc)
+| project TimeGeneratedUtc,subscriptionId, resourceGroup, Severity = properties.Severity, Alert = properties.AlertDisplayName, Intent = properties.Intent
+
+//Log Analytics query showing Updates from the last month
+UpdateRunProgress 
+| where TimeGenerated > ago(30d)
+| where UpdateRunName != "AV Definitions"
+//| where InstallationStatus !in("NotIncluded", "Succeeded")
+| summarize arg_max(TimeGenerated, UpdateRunName, InstallationStatus, Computer, Title) by Computer
+
+//Log Analytics query showing Free space and % free space, showing the lowest space on top
+Perf
+| where TimeGenerated > ago(2h) 
+| where CounterName == "% Free Space" and InstanceName == "C:"
+| project  TimeGenerated, Computer, Free_Percent = CounterValue
+| join kind= inner (
+Perf
+| where TimeGenerated > ago(2h) 
+| where CounterName == "Free Megabytes" and InstanceName == "C:"
+| project TimeGenerated , Computer, Free_MB=CounterValue
+) on Computer
+| summarize arg_max(TimeGenerated, Free_Percent, Free_MB) by Computer
+| project-away TimeGenerated
+| sort by Free_MB asc
+
+//Log Analytics query showing how Union works across 2 different workspaces (up to 100)
+union Event,
+//customerA
+workspace("workspaceid_customerA").Event,
+//customerB
+workspace("workspaceid_customerB").Event
+| where EventLevelName == "Error"
+| project TimeGenerated, Computer, RenderedDescription
