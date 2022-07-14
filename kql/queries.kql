@@ -1,29 +1,33 @@
-// Missing critical security updates all
+//LA - Showing latest heartbeat of systems in workspace
+Heartbeat
+| summarize LastCall = max(TimeGenerated) by Resource
+
+//LA -  Missing critical security updates all
 Update
 |where  OSType != "Linux" and UpdateState == "Needed" and Optional == "false" and (Classification == "Security Updates" or Classification == "Critical Updates") 
 | project TimeGenerated, Resource, Title, Classification,KBID, PublishedDate
 | sort by TimeGenerated desc
 
-// Missing critical and security updates listed per VM
+//LA - Missing critical and security updates listed per VM
 Update
 |where  OSType != "Linux" and UpdateState == "Needed" and Optional == "false" and (Classification == "Security Updates" or Classification == "Critical Updates") 
 | summarize UpdatesNeeded=makeset(Title), Updates=dcount(Title), makeset(KBID) by Computer
 
-// Antimalware status per computer
+//LA - Antimalware status per computer
 ProtectionStatus
 | summarize arg_max(TimeGenerated, ProtectionStatus, ProtectionStatusDetails) by Computer
 
-//Events per distinct computer
+//LA - Events per distinct computer
 Event
 | summarize count() by Computer
 | distinct Computer, count_ 
 
-//Errors and warnings on Domain controllers
+//LA - Errors and warnings on Domain controllers
 Event 
 | where Computer contains "ADS" and EventLevelName in ("Warning", "Error")
 | distinct Computer, EventLog, EventID, RenderedDescription
 
-//Expiring certificates
+//LA - Expiring certificates
 Event
 | where RenderedDescription has "certificate will expire" or RenderedDescription has "is about to expire or already expired"
 | distinct Computer, EventLog, EventID, RenderedDescription
@@ -44,14 +48,14 @@ securityresources
 | sort by tostring(TimeGeneratedUtc)
 | project TimeGeneratedUtc,subscriptionId, resourceGroup, Severity = properties.Severity, Alert = properties.AlertDisplayName, Intent = properties.Intent
 
-//Log Analytics query showing Updates from the last month
+//LA - showing Updates from the last month
 UpdateRunProgress 
 | where TimeGenerated > ago(30d)
 | where UpdateRunName != "AV Definitions"
 //| where InstallationStatus !in("NotIncluded", "Succeeded")
 | summarize arg_max(TimeGenerated, UpdateRunName, InstallationStatus, Computer, Title) by Computer
 
-//Log Analytics query showing Free space and % free space, showing the lowest space on top
+//LA - showing Free space and % free space, showing the lowest space on top
 Perf
 | where TimeGenerated > ago(2h) 
 | where CounterName == "% Free Space" and InstanceName == "C:"
@@ -66,7 +70,7 @@ Perf
 | project-away TimeGenerated
 | sort by Free_MB asc
 
-//Log Analytics query showing how Union works across 2 different workspaces (up to 100)
+//LA - showing how Union works across 2 different workspaces (up to 100)
 union Event,
 //customerA
 workspace("workspaceid_customerA").Event,
@@ -74,3 +78,11 @@ workspace("workspaceid_customerA").Event,
 workspace("workspaceid_customerB").Event
 | where EventLevelName == "Error"
 | project TimeGenerated, Computer, RenderedDescription
+
+//ARG - Show VM in stopped state (instead of deallocated = burning money)
+resources | where type == "microsoft.compute/virtualmachines"
+| extend vmState = tostring(properties.extended.instanceView.powerState.displayStatus)
+| where vmState == "VM stopped"
+| project subscriptionId, resourceGroup, name, vmState, vmSize=properties.hardwareProfile.vmSize, properties
+
+
