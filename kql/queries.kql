@@ -85,4 +85,18 @@ resources | where type == "microsoft.compute/virtualmachines"
 | where vmState == "VM stopped"
 | project subscriptionId, resourceGroup, name, vmState, vmSize=properties.hardwareProfile.vmSize, properties
 
+//ARG - Show various AVD related items and whether a scaling plan is enabled
+resources
+| where type == 'microsoft.desktopvirtualization/scalingplans'
+| mv-expand parse_json(properties.hostPoolReferences)
+| extend hostPoolId=properties_hostPoolReferences.hostPoolArmPath
+| extend hostpoolName = tostring(split(hostPoolId,'/')[(-1)])
+| project subscriptionId, resourceGroup, ScalingPlanname=name, scalingPlanEnabled=properties_hostPoolReferences.scalingPlanEnabled, hostpoolName
+| join kind= inner (
+resources 
+| where type == 'microsoft.desktopvirtualization/hostpools' 
+| extend hostpoolName=name
+| project subscriptionId, hostpoolName, resourceGroup, hostPoolType=properties.hostPoolType, maxsessionLimit=properties.maxSessionLimit, startVMOnConnect=properties.startVMOnConnect, customRdpProperty=properties.customRdpProperty
+) on hostpoolName
+| project-away subscriptionId1, hostpoolName1, resourceGroup1
 
