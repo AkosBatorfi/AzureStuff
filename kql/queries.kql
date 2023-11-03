@@ -100,3 +100,44 @@ resources
 ) on hostpoolName
 | project-away subscriptionId1, hostpoolName1, resourceGroup1
 
+//ARG Classic Administrators:
+authorizationresources
+| where type == "microsoft.authorization/classicadministrators"
+| project subscriptionId, adminState=properties.adminState, role=properties.role
+
+//ARG Advisories (high availability too noisy):
+advisorresources
+| where type == "microsoft.advisor/recommendations"
+| extend category=tostring(properties.category), problem=tostring(properties.shortDescription.problem), solution=tostring(properties.shortDescription.solution),impactedValue=tostring(properties.impactedValue)
+| where category != "HighAvailability"
+| distinct subscriptionId, tenantId, problem, solution, category,impactedValue
+| sort by category
+
+//ARG Roles through resource graph, slightly modified from Morten Knudsen:
+authorizationresources
+| where type == 'microsoft.authorization/roleassignments'
+| extend prop = properties
+| extend roleDefinitionIdFull = tostring(properties.roleDefinitionId)
+| extend roleDefinitionIdsplit = split(roleDefinitionIdFull,'/')
+| extend roleDefinitionId = tostring(roleDefinitionIdsplit[(4)])
+| extend roleAssignmentPrincipalType = properties.principalType
+| extend roleAssignmentDescription = properties.description
+| extend roleAssignmentPrincipalId = properties.principalId
+| extend roleAssignmentCreatedOn = properties.createdOn
+| extend roleAssignmentUpdatedOn = properties.updatedOn
+| extend roleAssignmentUpdatedById = properties.updatedBy
+| extend roleAssignmentCreatedById = properties.createdBy
+| extend roleAssignmentScope = properties.scope
+| project-away managedBy,kind,sku,plan,tags,identity,location,resourceGroup
+| join kind=leftouter (authorizationresources
+        | where type == 'microsoft.authorization/roledefinitions'
+        | extend roleDefinitionIdFull = tostring(id)
+        | extend roleDefinitionIdsplit = split(roleDefinitionIdFull,'/')
+        | extend roleDefinitionId = tostring(roleDefinitionIdsplit[(4)])
+        | extend description = properties.description
+        | extend roleName = properties.roleName
+        | extend roleType = properties.type
+        | project-away managedBy,kind,sku,plan,tags,identity,location,resourceGroup)
+    on roleDefinitionId
+| project tenantId, subscriptionId, roleName,roleType,roleAssignmentPrincipalType,roleAssignmentPrincipalId,roleAssignmentCreatedOn,roleAssignmentUpdatedOn,roleAssignmentUpdatedById,roleAssignmentCreatedById,roleAssignmentScope
+| sort by subscriptionId
