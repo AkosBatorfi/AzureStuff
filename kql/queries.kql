@@ -141,3 +141,17 @@ authorizationresources
     on roleDefinitionId
 | project tenantId, subscriptionId, roleName,roleType,roleAssignmentPrincipalType,roleAssignmentPrincipalId,roleAssignmentCreatedOn,roleAssignmentUpdatedOn,roleAssignmentUpdatedById,roleAssignmentCreatedById,roleAssignmentScope
 | sort by subscriptionId
+
+//ARG any nat gateway that doesn't have a subnet connected, possible waste
+resources
+| where type == "microsoft.network/natgateways"
+| where isnull(properties.subnets)
+
+//ARG VNET Peering disconnected
+resources
+| where type == "microsoft.network/virtualnetworks"
+| where  properties.virtualNetworkPeerings != "[]"
+| mv-expand virtualNetworkPeerings=properties.virtualNetworkPeerings
+| project subscriptionId, resourceGroup, name, virtualNetworkPeerings.properties.peeringState, virtualNetworkPeerings.properties.remoteVirtualNetwork.id,virtualNetworkPeerings
+
+
