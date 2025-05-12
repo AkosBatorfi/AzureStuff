@@ -1,0 +1,28 @@
+#This code will retrieve a PSK from a P2S connection of a Virtual Network Gateway, and display that PSK.
+
+function Get-PSK {
+    param (
+        $subscriptionId,
+        $resourceGroup,
+        $connection
+    )
+    $currentContext = Get-AzContext
+
+    # fetching bearer token
+    $azureRmProfile = [Microsoft.Azure.Commands.Common.Authentication.Abstractions.AzureRmProfileProvider]::Instance.Profile
+    $profileClient = [Microsoft.Azure.Commands.ResourceManager.Common.RMProfileClient]::new($azureRmProfile)
+    $token = $profileClient.AcquireAccessToken($currentContext.Subscription.TenantId)
+
+    $restCommand = @{
+        Headers = @{
+        Authorization  = "Bearer $($token.AccessToken)"
+        'Content-Type' = 'application/json'
+        }
+        Method  = 'GET'
+    }
+
+    $Uri = "https://management.azure.com/subscriptions/$subscriptionId/resourceGroups/$resourceGroup/providers/Microsoft.Network/connections/$connection/sharedkey?api-version=2024-05-01"
+    $output = Invoke-RestMethod @restCommand -Uri $Uri
+   
+    return $output
+}
